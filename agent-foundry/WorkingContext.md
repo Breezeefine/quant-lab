@@ -30,9 +30,10 @@
 
 - 2026-05-31 完成四维并行调研 + 三路聚焦深潜
 - 推荐方案：uv + Python 3.12 + Polars/DuckDB + Parquet + Streamlit + 自建回测引擎
-- 数据源：AKShare（免费、零注册、覆盖广）
+- 数据源：Baostock（历史数据+5min线，自有服务器直连）+ 新浪/腾讯（实时行情）
+- ⚠️ AKShare/efinance 不可用：东方财富 push2his API 有 TLS 层反爬，Python/curl 均被断开
 - 表达式引擎：基于 Polars 自建，移植 qlib DSL 模式，约 1000-1500 行
-- Gateway 模式：采用 vnpy 抽象工厂 + 事件驱动，AKShareGateway + SimBrokerGateway
+- Gateway 模式：采用 vnpy 抽象工厂 + 事件驱动，BaostockGateway + SinaQuoteGateway + SimBrokerGateway
 - 模拟实盘：统一引擎设计，回测和模拟实盘共用策略代码
 - MVP 范围扩展至约 4000 行代码
 - 详见 agent-foundry/Research.md
@@ -48,4 +49,4 @@
 
 ## 未决问题
 
-- AKShare 集成测试因网络问题失败，需在有网络环境下重试验证。
+- 无

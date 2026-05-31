@@ -7,24 +7,29 @@
 
 ## 一、A 股数据源
 
-### 推荐：AKShare（主力）+ baostock（备选）
+### 推荐：Baostock（历史数据）+ 新浪/腾讯（实时行情）
 
-| 维度 | AKShare | TuShare Pro | baostock | efinance |
-|------|---------|-------------|----------|----------|
-| 费用 | 完全免费 | 积分制（基础免费） | 完全免费 | 完全免费 |
-| 注册 | 无需 | 需要 | 无需（login即可） | 无需 |
-| 数据覆盖 | 极广（东财/新浪/同花顺聚合） | 最全 | A股日线/基本面 | 东财单一源 |
-| 分钟线 | 支持 | 支持（需积分） | 不支持 | 支持 |
-| 维护状态 | 极活跃（2026-05-27更新） | 活跃 | 活跃但透明度低 | 活跃 |
-| Python SDK | pip install akshare | pip install tushare | pip install baostock | pip install efinance |
-| Stars | 19.9k | 15.1k | GitHub 404 | 3.7k |
+**2026-05-31 更新**：实测发现东方财富 `push2his.eastmoney.com` API 存在 TLS 层反爬机制，Python requests/curl 均被服务器主动断开连接。AKShare 和 efinance 底层均依赖此 API，因此不可用。
 
-**决策**：MVP 阶段用 AKShare 零成本启动，无需注册。后续如需更稳定数据再引入 TuShare。
+| 数据源 | 日线 | 5min线 | 1min线 | Tick | 实时行情 | 数据源方 | 状态 |
+|--------|------|--------|--------|------|----------|----------|------|
+| **Baostock** | ✅ | ✅ | ❌ | ❌ | ❌ | 自有服务器 | ✅ 已验证可用 |
+| **新浪财经** | — | — | — | — | ✅ | 新浪 | ✅ 已验证可用 |
+| **腾讯财经** | — | — | — | — | ✅ | 腾讯 | ✅ 已验证可用 |
+| AKShare | ✅ | ✅ | ✅ | 有限 | ✅ | 东方财富 | ❌ 反爬被封 |
+| efinance | ✅ | ✅ | ✅ | ✅ | ✅ | 东方财富 | ❌ 反爬被封 |
+| TuShare Pro | ✅ | ✅ | ❌ | ❌ | ✅ | 自有 | 积分制 |
+
+**决策**：
+- **历史数据 + 分钟线回测** → Baostock（日线 + 5min，免费无注册，自有服务器直连）
+- **实时行情（S6 模拟实盘）** → 新浪或腾讯 HTTP API（简单 GET 请求，无需注册）
+- **1 分钟线** → 免费源均无可靠支持，MVP 先用 5min
 
 ### 风险
 
-- 所有爬虫类数据源依赖第三方网站，存在接口变动风险
-- 需要本地缓存机制减少外部依赖
+- Baostock 1 分钟线数据不可用，回测精度限制在 5 分钟级别
+- 新浪/腾讯实时行情有 3-15 秒延迟（免费接口通病）
+- 如需 Tick 级数据，需考虑券商 QMT（xtquant）方案
 
 ---
 
@@ -146,7 +151,8 @@ quant-lab/
 ├── src/quant_lab/
 │   ├── config.py               # Pydantic 配置
 │   ├── data/                   # 数据层
-│   │   ├── sources.py          # AKShare 数据源
+│   │   ├── baostock_gateway.py # Baostock 数据源
+│   │   ├── sina_gateway.py     # 新浪实时行情
 │   │   ├── storage.py          # Parquet/DuckDB 读写
 │   │   └── schemas.py          # 数据模型
 │   ├── backtest/               # 回测引擎
@@ -264,7 +270,8 @@ class BaseGateway(ABC):
 - 支持定时器事件（每秒触发）
 
 **我们的 Gateway 实现计划**：
-- `AKShareGateway` — 数据源网关（轮询模式，3秒刷新）
+- `BaostockGateway` — 历史数据网关（Baostock 直连，日线+分钟线）
+- `SinaQuoteGateway` — 实时行情网关（新浪财经 HTTP API）
 - `SimBrokerGateway` — 模拟交易网关（即时撮合，A股规则）
 - `GatewayManager` — 统一管理多个 Gateway
 
@@ -313,7 +320,7 @@ DataFeed（数据源）→ Strategy（策略）→ Order（订单）
 
 | 模块 | 内容 | 代码量估计 |
 |------|------|-----------|
-| 数据层 | AKShare Gateway + Parquet 存储 | ~500 行 |
+| 数据层 | Baostock Gateway + Parquet 存储 + 新浪实时行情 | ~500 行 |
 | 表达式引擎 | DSL 解析器 + Polars 编译器 + 基础运算符 | ~1000 行 |
 | 回测引擎 | 向量化回测 + 撮合引擎 + A 股规则 | ~800 行 |
 | 模拟实盘 | 统一引擎 + SimBroker Gateway | ~600 行 |
