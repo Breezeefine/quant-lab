@@ -10,7 +10,7 @@ from datetime import date, timedelta
 
 from loguru import logger
 
-from quant_lab.data.akshare_gateway import AKShareGateway
+from quant_lab.data.baostock_gateway import BaostockGateway
 from quant_lab.data.schemas import FetchRequest
 from quant_lab.data.storage import Storage
 
@@ -38,7 +38,7 @@ def main():
     logger.info(f"Fetching {market}{args.symbol} from {start_date} to {end_date}")
 
     # 采集数据
-    gateway = AKShareGateway()
+    gateway = BaostockGateway()
     request = FetchRequest(
         symbol=args.symbol,
         start_date=start_date,
